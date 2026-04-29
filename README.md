@@ -1,24 +1,92 @@
 # Pascal Event Pump
 
-A lightweight and efficient event pump implementation for Free Pascal, designed to manage and execute queued event callbacks with minimal overhead.
+A lightweight and efficient object-oriented event pump implementation for Free Pascal, designed to manage and execute queued event callbacks with minimal overhead.
+
+## BREAKING CHANGE on April 29, 2026
+
+**Major Refactoring: Migration to Object-Oriented Architecture**
+
+The current version introduces a complete refactoring from a procedural API to an object-oriented class-based design. This change renames the original Pascal unit to `EventPumpUnit.pp`, and improves code organization, encapsulation, and memory management.
+
+### API Changes
+
+**Before (Procedural API):**
+```pascal
+var
+  events: TEventList;
+begin
+  AddEvent(events, @MyCallback);
+  DoEvents(events);
+  events.Free;
+end;
+```
+
+**After (Object-Oriented API):**
+```pascal
+var
+  eventPump: TEventPump;
+begin
+  eventPump := TEventPump.Create;
+  try
+    eventPump.AddEvent(@MyCallback);
+    eventPump.DoEvents;
+  finally
+    eventPump.Free;
+  end;
+end;
+```
+
+### Migration Guide
+
+1. **Unit Name Change**: The unit has been renamed from `EventPump` to `EventPumpUnit` to avoid naming conflicts with the `TEventPump` class.
+
+2. **Variable Declaration**: Replace `TEventList` variables with `TEventPump` instances.
+
+3. **Method Calls**: All functions now operate on the `TEventPump` instance instead of passing event lists as parameters.
+
+4. **Memory Management**: Use `Create` and `Free` with `try...finally` blocks for proper resource management.
+
+5. **Removed Types**: `TEventList` is now a private implementation detail and is no longer exposed in the public interface.
+
+### Benefits of the New Architecture
+
+- **Better Encapsulation**: Event list is managed internally, reducing complexity
+- **Automatic Memory Management**: Constructor and destructor handle resource allocation
+- **Cleaner API**: Methods operate on the instance, no need to pass event lists
+- **Property Support**: Added `EventCount` property for convenient access to event count
+- **Type Safety**: Stronger type checking through class-based design
+- **Easier Extension**: Class-based design makes it easier to add new features through inheritance
+
+### Compatibility
+
+This is a **breaking change**. Existing code using the procedural API will need to be updated to use the new object-oriented API. The functionality remains the same, but the interface has changed significantly.
+
+## Requirements
+
+- Free Pascal Compiler 3.0.0 or higher
+- Generics.Collections (included in standard library)
 
 ## Features
 
-- Simple event queue management
+- Object-oriented design with encapsulated event management
+- Simple event queue management through class interface
 - Generic callback system using procedure types
 - Batch event execution with automatic cleanup
 - Event counting and undo capabilities
 - Zero-dependency implementation (uses only standard library)
+- Automatic memory management with constructor/destructor
 - Thread-safe design for basic use cases
 
-## Installation
+## Installation & Usage
+
+### Installing From Source
 1. Clone or download the repository:
 ```bash
 git clone https://github.com/Pac-Dessert1436/Pascal-Event-Pump.git
 ```
 2. To use this event pump in your Pascal project:
-   - Copy `EventPump.pp` to your project directory.
-   - Add `EventPump` to your `uses` clause.
+   - Copy `EventPumpUnit.pp` to your project directory.
+   - Add `EventPumpUnit` to your `uses` clause.
 3. To run the test program (optional):
 ```bash
 # Navigate to the project directory
@@ -29,15 +97,13 @@ fpc Test1.pp
 ./Test1
 ```
 
-## Usage
-
 ### Basic Example
 
 ```pascal
 program MyProgram;
 
 uses
-  EventPump, SysUtils;
+  EventPumpUnit, SysUtils;
 
 procedure MyCallback;
 begin
@@ -45,41 +111,49 @@ begin
 end;
 
 var
-  events: TEventList;
+  eventPump: TEventPump;
 begin
-  events := nil;
+  eventPump := TEventPump.Create;
   
-  AddEvent(events, @MyCallback);  // Add events to the queue
-  DoEvents(events);               // Execute all queued events
-  events.Free;                    // Free the event list memory
+  try
+    eventPump.AddEvent(@MyCallback);  // Add events to the queue
+    eventPump.DoEvents;               // Execute all queued events
+  finally
+    eventPump.Free;                   // Free the event pump instance
+  end;
 end.
 ```
 
 ### API Reference
 
-#### `AddEvent(var events: TEventList; callback: TEventCallback)`
+#### `TEventPump`
+The main class for managing event queues.
+
+#### `constructor Create`
+Creates a new instance of the event pump and initializes the internal event list.
+
+#### `destructor Destroy`
+Destroys the event pump instance and frees all allocated memory.
+
+#### `procedure AddEvent(callback: TEventCallback)`
 Adds a callback procedure to the event queue.
 
 - **Parameters:**
-  - `events`: The event list (will be created if nil)
   - `callback`: The procedure to execute
 
-#### `DoEvents(var events: TEventList)`
+#### `procedure DoEvents`
 Executes all queued callbacks and clears the event list.
 
-- **Parameters:**
-  - `events`: The event list to process
-
-#### `CountEvents(const events: TEventList): Integer`
+#### `function CountEvents: Integer`
 Returns the number of pending events in the queue.
 
 - **Returns:** Number of queued callbacks
 
-#### `UndoEvents(var events: TEventList)`
+#### `procedure UndoEvents`
 Clears all queued events without executing them.
 
-- **Parameters:**
-  - `events`: The event list to clear
+#### `property EventCount: Integer`
+Read-only property that returns the number of pending events (same as CountEvents).
 
 ## Building
 
@@ -89,16 +163,11 @@ Compile with Free Pascal Compiler (FPC):
 fpc Test1.pp
 ```
 
-Or build the event pump unit:
+Or build the event pump unit (now renamed to `EventPumpUnit.pp`):
 
 ```bash
-fpc EventPump.pp
+fpc EventPumpUnit.pp
 ```
-
-## Requirements
-
-- Free Pascal Compiler 3.0.0 or higher
-- Generics.Collections (included in standard library)
 
 ## License
 

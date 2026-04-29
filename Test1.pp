@@ -3,7 +3,7 @@ program Test1;
 {$mode objfpc}{$H+}
 
 uses
-  EventPump, SysUtils;
+  EventPumpUnit, SysUtils;
 
 procedure MyCallback;
 begin
@@ -16,16 +16,20 @@ begin
 end;
 
 var
-  events: TEventList;
+  eventPump: TEventPump;
   count: Integer;
 begin
-  AddEvent(events, @MyCallback);
-  AddEvent(events, @AnotherCallback);
+  eventPump := TEventPump.Create;
   
-  count := CountEvents(events);
-  WriteLn('Event count: ' + IntToStr(count));
-  WriteLn('Executing all events:');
-  DoEvents(events);
-  
-  events.Free;
+  try
+    eventPump.AddEvent(@MyCallback);
+    eventPump.AddEvent(@AnotherCallback);
+    
+    count := eventPump.CountEvents;
+    WriteLn('Event count: ' + IntToStr(count));
+    WriteLn('Executing all events:');
+    eventPump.DoEvents;
+  finally
+    eventPump.Free;
+  end;
 end.
