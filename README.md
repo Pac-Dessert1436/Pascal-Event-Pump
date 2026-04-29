@@ -2,9 +2,17 @@
 
 A lightweight and efficient object-oriented event pump implementation for Free Pascal, designed to manage and execute queued event callbacks with minimal overhead.
 
-## BREAKING CHANGE on April 29, 2026
+## New Feature: Priority-Based Event Scheduling (and 1 Breaking Change)
 
-**Major Refactoring: Migration to Object-Oriented Architecture**
+Added priority-based event scheduling system that allows events to be executed in order of importance. Events with higher priority values are executed first, making it ideal for applications where certain callbacks need to be processed before others.
+
+**Key Changes:**
+- Added `priority` parameter to `AddEvent` method (default: 0)
+- Implemented automatic event sorting before execution
+- Events are now executed from highest to lowest priority
+- _Object-oriented API for easier integration (breaking change, see migration guide below)_
+
+### Major Refactoring: Migration to Object-Oriented Architecture
 
 The current version introduces a complete refactoring from a procedural API to an object-oriented class-based design. This change renames the original Pascal unit to `EventPumpUnit.pp`, and improves code organization, encapsulation, and memory management.
 
@@ -56,6 +64,8 @@ end;
 - **Property Support**: Added `EventCount` property for convenient access to event count
 - **Type Safety**: Stronger type checking through class-based design
 - **Easier Extension**: Class-based design makes it easier to add new features through inheritance
+- **Priority Scheduling**: Built-in priority system ensures critical events are executed first
+- **Flexible Event Management**: Support for both simple and priority-based event queuing
 
 ### Compatibility
 
@@ -71,6 +81,7 @@ This is a **breaking change**. Existing code using the procedural API will need 
 - Object-oriented design with encapsulated event management
 - Simple event queue management through class interface
 - Generic callback system using procedure types
+- **Priority-based event scheduling** - Events are executed in order of priority (higher priority first)
 - Batch event execution with automatic cleanup
 - Event counting and undo capabilities
 - Zero-dependency implementation (uses only standard library)
@@ -110,18 +121,44 @@ begin
   WriteLn('Callback executed!');
 end;
 
+procedure HighPriorityCallback;
+begin
+  WriteLn('High priority callback executed!');
+end;
+
 var
   eventPump: TEventPump;
 begin
   eventPump := TEventPump.Create;
   
   try
-    eventPump.AddEvent(@MyCallback);  // Add events to the queue
-    eventPump.DoEvents;               // Execute all queued events
+    // Add events with different priorities
+    eventPump.AddEvent(@MyCallback, 1);              // Low priority
+    eventPump.AddEvent(@HighPriorityCallback, 10);   // High priority
+    eventPump.DoEvents;                              // Executes high priority first
   finally
-    eventPump.Free;                   // Free the event pump instance
+    eventPump.Free;                                  // Free the event pump instance
   end;
 end.
+```
+
+### Priority Scheduling
+
+The event pump now supports priority-based event scheduling. Events with higher priority values are executed first. If no priority is specified, events default to priority 0.
+
+**Priority Levels:**
+- **0 or negative**: Low priority (executed last)
+- **1-10**: Normal priority
+- **11-50**: High priority
+- **51+**: Critical priority (executed first)
+
+**Example:**
+```pascal
+eventPump.AddEvent(@LowPriorityTask, 1);
+eventPump.AddEvent(@CriticalTask, 100);
+eventPump.AddEvent(@NormalTask, 5);
+eventPump.AddEvent(@HighPriorityTask, 20);
+// Execution order: CriticalTask, HighPriorityTask, NormalTask, LowPriorityTask
 ```
 
 ### API Reference
@@ -135,14 +172,15 @@ Creates a new instance of the event pump and initializes the internal event list
 #### `destructor Destroy`
 Destroys the event pump instance and frees all allocated memory.
 
-#### `procedure AddEvent(callback: TEventCallback)`
-Adds a callback procedure to the event queue.
+#### `procedure AddEvent(callback: TEventCallback; priority: Integer = 0)`
+Adds a callback procedure to the event queue with an optional priority level.
 
 - **Parameters:**
   - `callback`: The procedure to execute
+  - `priority`: Priority level (higher values execute first, default is 0)
 
 #### `procedure DoEvents`
-Executes all queued callbacks and clears the event list.
+Executes all queued callbacks in priority order (highest priority first) and clears the event list.
 
 #### `function CountEvents: Integer`
 Returns the number of pending events in the queue.

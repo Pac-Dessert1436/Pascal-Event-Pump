@@ -9,18 +9,25 @@ uses
 
 type
   TEventCallback = procedure;
-  TEventList = specialize TList<TEventCallback>;
+  
+  TPriorityEvent = record
+    Callback: TEventCallback;
+    Priority: Integer;
+  end;
+  
+  TEventList = specialize TList<TPriorityEvent>;
 
   { TEventPump }
   
   TEventPump = class
   private
     FEvents: TEventList;
+    procedure SortEventsByPriority;
   public
     constructor Create;
     destructor Destroy; override;
     
-    procedure AddEvent(callback: TEventCallback);
+    procedure AddEvent(callback: TEventCallback; priority: Integer = 0);
     procedure DoEvents;
     function CountEvents: Integer;
     procedure UndoEvents;
@@ -44,18 +51,44 @@ begin
   inherited Destroy;
 end;
 
-procedure TEventPump.AddEvent(callback: TEventCallback);
+procedure TEventPump.AddEvent(callback: TEventCallback; priority: Integer = 0);
+var
+  newEvent: TPriorityEvent;
 begin
-  FEvents.Add(callback);
+  newEvent.Callback := callback;
+  newEvent.Priority := priority;
+  FEvents.Add(newEvent);
+end;
+
+procedure TEventPump.SortEventsByPriority;
+var
+  i, j: Integer;
+  temp: TPriorityEvent;
+begin
+  for i := 0 to FEvents.Count - 2 do
+  begin
+    for j := i + 1 to FEvents.Count - 1 do
+    begin
+      if FEvents[i].Priority < FEvents[j].Priority then
+      begin
+        temp := FEvents[i];
+        FEvents[i] := FEvents[j];
+        FEvents[j] := temp;
+      end;
+    end;
+  end;
 end;
 
 procedure TEventPump.DoEvents;
 var
-  evt: TEventCallback;
+  evt: TPriorityEvent;
 begin
+  SortEventsByPriority;
+  
   for evt in FEvents do
   begin
-    if Assigned(evt) then evt;
+    if Assigned(evt.Callback) then
+      evt.Callback;
   end;
   FEvents.Clear;
 end;

@@ -7,12 +7,22 @@ uses
 
 procedure MyCallback;
 begin
-  WriteLn('- Callback executed!');
+  WriteLn('- Default priority callback executed!');
 end;
 
 procedure AnotherCallback;
 begin
-  WriteLn('- Here''s another action!');
+  WriteLn('- Medium priority callback executed!');
+end;
+
+procedure HighPriorityCallback;
+begin
+  WriteLn('- High priority callback executed!');
+end;
+
+procedure CriticalCallback;
+begin
+  WriteLn('- Critical priority callback executed!');
 end;
 
 var
@@ -22,12 +32,23 @@ begin
   eventPump := TEventPump.Create;
   
   try
+    WriteLn('Adding events with different priorities:');
+    WriteLn('  - Default priority (0)');
     eventPump.AddEvent(@MyCallback);
-    eventPump.AddEvent(@AnotherCallback);
+    
+    WriteLn('  - High priority (10)');
+    eventPump.AddEvent(@HighPriorityCallback, 10);
+    
+    WriteLn('  - Medium priority (5)');
+    eventPump.AddEvent(@AnotherCallback, 5);
+    
+    WriteLn('  - Critical priority (100)');
+    eventPump.AddEvent(@CriticalCallback, 100);
     
     count := eventPump.CountEvents;
-    WriteLn('Event count: ' + IntToStr(count));
-    WriteLn('Executing all events:');
+    WriteLn('');
+    WriteLn('Total event count: ' + IntToStr(count));
+    WriteLn('Executing all events (sorted by priority):');
     eventPump.DoEvents;
   finally
     eventPump.Free;
